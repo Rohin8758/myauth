@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { signInWithPopup } from "firebase/auth";
+import { auth, provider } from "./firebase-config";
 
 const Signup = () => {
     const [formData, setFormData] = useState({
@@ -11,15 +13,24 @@ const Signup = () => {
     });
 
     const [errors, setErrors] = useState({});
-
     const navigate = useNavigate();
 
     const handleChange = (e) => {
-        const { name, value } = e.target;
         setFormData({
             ...formData,
-            [name]: value
+            [e.target.name]: e.target.value
         });
+    };
+
+    const signInWithGoogle = async () => {
+        try {
+            const result = await signInWithPopup(auth, provider);
+            const user = result.user;
+            console.log("User signed in: ", user);
+            navigate('/home');
+        } catch (error) {
+            console.error("Error during Google sign-in: ", error);
+        }
     };
 
     const validate = () => {
@@ -34,16 +45,26 @@ const Signup = () => {
         return tempErrors;
     };
 
+    const generateToken = () => {
+        return Math.random().toString(36).substr(2);
+    };
+
     const handleSubmit = (e) => {
         e.preventDefault();
-        const validationErrors = validate();
+        let validationErrors = validate();
         setErrors(validationErrors);
         if (Object.keys(validationErrors).length === 0) {
+            const token = generateToken();
+            const userData = {
+                ...formData,
+                token
+            };
             const existingUsers = JSON.parse(localStorage.getItem('users')) || [];
-            existingUsers.push(formData);
+            existingUsers.push(userData);
             localStorage.setItem('users', JSON.stringify(existingUsers));
-            console.log('Form submitted successfully', formData);
-            navigate('/home');
+            console.log('Form submitted successfully', userData);
+            navigate('/home',  { replace: true });
+
         }
     };
 
@@ -79,7 +100,19 @@ const Signup = () => {
                     <span>Confirm password</span>
                     {errors.confirmPassword && <p className="error text-red-500">{errors.confirmPassword}</p>}
                 </label>
-                <button className="submit">Submit</button>
+                <div className="flex flex-col items-center mt-4">
+                    <button className="submit bg-blue-500 text-white py-2 px-4 rounded w-full">Submit</button>
+                    <button
+                        type="button"
+                        onClick={signInWithGoogle}
+                        className="text-white py-2 px-4 rounded mb-2 hover:text-blue-500"
+                    >
+                        Sign in with Google
+                    </button>
+                    <p className="signin">
+                        <Link to="/">Click To <strong>Login</strong></Link>
+                    </p>
+                </div>
             </form>
         </div>
     );

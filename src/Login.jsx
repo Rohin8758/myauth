@@ -1,5 +1,7 @@
-import React, { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import React, { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { signInWithPopup } from "firebase/auth";
+import { auth, provider } from "./firebase-config";
 
 const Login = () => {
     const [email, setEmail] = useState('');
@@ -10,38 +12,59 @@ const Login = () => {
     const formvalidation = () => {
         let temperror = {};
         if (email === "") {
-            temperror.email = "email is required"
+            temperror.email = "Email is required";
         }
         if (!/^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,4}$/.test(email)) {
-            temperror.email = "email is invalid"
+            temperror.email = "Email is invalid";
         }
         if (password === "") {
-            temperror.password = "password is required"
+            temperror.password = "Password is required";
         }
         return temperror;
-    }
+    };
 
-    const handlelogin = (e) => {
+    const handleLogin = (e) => {
         e.preventDefault();
         let validation = formvalidation();
         setError(validation);
-        const getuser = JSON.parse(localStorage.getItem('users')) || [];
-        const finduser = getuser.find(user => user.email === email && user.password === password);
 
-        if (finduser) {
-            navigate("/home");
+        if (Object.keys(validation).length === 0) {
+            const getUser = JSON.parse(localStorage.getItem('users')) || [];
+            const findUser = getUser.find(user => user.email === email && user.password === password);
 
-        } else {
-            window.alert("user not Found")
+            if (findUser) {
+                const getUserToken = JSON.parse(localStorage.getItem('users')) || [];
+                const findToken = getUserToken.find(user => user.token);
+                if (findToken) {
+                    navigate("/home", { replace: true });
+                } else {
+                    window.alert("Token not found. Please sign up.");
+                    navigate("/signup");
+                }
+            } else {
+                window.alert("User not found. Please sign up.");
+                navigate("/signup");
+            }
         }
-    }
+    };
+
+    const signInWithGoogle = async () => {
+        try {
+            const result = await signInWithPopup(auth, provider);
+            const user = result.user;
+            console.log("User signed in: ", user);
+            navigate('/home'); // Redirect to home after successful login
+        } catch (error) {
+            console.error("Error during Google sign-in: ", error);
+        }
+    };
 
     return (
         <>
             <div className='h-full flex justify-center pt-28 pb-32'>
-                <form className="form" onSubmit={handlelogin}>
+                <form className="form" onSubmit={handleLogin}>
                     <p className="title">Login</p>
-                    <p className="message">Signup now and get full access to our app. </p>
+                    <p className="message">Login with your credentials or Google.</p>
                     <label>
                         <input
                             className="input"
@@ -66,14 +89,23 @@ const Login = () => {
                         {error.password && <p className='text-red-500 text-sm'>{error.password}</p>}
                         <span>Password</span>
                     </label>
-                    <button className="submit">Submit</button>
+                    <div className="flex flex-col items-center mt-4">
+                        <button className="submit bg-blue-500 w-full text-white py-2 px-4 rounded">Submit</button>
+                        <button
+                            type="button"
+                            onClick={signInWithGoogle}
+                            className="text-white py-2 px-4 rounded mb-2"
+                        >
+                            Sign in with Google
+                        </button>
+                    </div>
                     <p className="signin">
                         <Link to="/signup">Click To <strong>Sign up</strong></Link>
                     </p>
                 </form>
             </div>
         </>
-    )
-}
+    );
+};
 
-export default Login
+export default Login;
