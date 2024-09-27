@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { signInWithPopup } from "firebase/auth";
 import { auth, provider } from "./firebase-config";
@@ -25,13 +25,31 @@ const Signup = () => {
     const signInWithGoogle = async () => {
         try {
             const result = await signInWithPopup(auth, provider);
+            const token = await result.user.getIdToken();
             const user = result.user;
-            console.log("User signed in: ", user);
-            navigate('/home');
+
+            const userData = {
+                email: user.email,
+                token: token,
+                name: user.displayName,
+                photoURL: user.photoURL
+            };
+            localStorage.setItem('user', JSON.stringify(userData));
+            navigate('/home', { replace: true });
+
         } catch (error) {
-            console.error("Error during Google sign-in: ", error);
+            window.alert("Error during Google sign-in: ", error);
         }
     };
+
+    useEffect(() => {
+        let user = JSON.parse(localStorage.getItem('user'));
+        if (user && user.token) {
+            navigate('/home', { replace: true });
+        }
+    }, [navigate]);
+
+
 
     const validate = () => {
         let tempErrors = {};
@@ -63,7 +81,7 @@ const Signup = () => {
             existingUsers.push(userData);
             localStorage.setItem('users', JSON.stringify(existingUsers));
             console.log('Form submitted successfully', userData);
-            navigate('/home',  { replace: true });
+            navigate('/home', { replace: true });
 
         }
     };

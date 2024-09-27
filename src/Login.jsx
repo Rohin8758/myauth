@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { signInWithPopup } from "firebase/auth";
 import { auth, provider } from "./firebase-config";
+
 
 const Login = () => {
     const [email, setEmail] = useState('');
@@ -9,6 +10,7 @@ const Login = () => {
     const [error, setError] = useState({});
     const navigate = useNavigate();
 
+    /* formvalidation for form */
     const formvalidation = () => {
         let temperror = {};
         if (email === "") {
@@ -23,6 +25,7 @@ const Login = () => {
         return temperror;
     };
 
+    /* handle submit button function  */
     const handleLogin = (e) => {
         e.preventDefault();
         let validation = formvalidation();
@@ -48,16 +51,33 @@ const Login = () => {
         }
     };
 
+    /* Authentication with the google  */
     const signInWithGoogle = async () => {
         try {
             const result = await signInWithPopup(auth, provider);
+            const token = await result.user.getIdToken();
             const user = result.user;
-            console.log("User signed in: ", user);
-            navigate('/home'); // Redirect to home after successful login
+
+            const userData = {
+                email: user.email,
+                token: token,
+                name: user.displayName,
+                photoURL: user.photoURL
+            };
+            localStorage.setItem('user', JSON.stringify(userData));
+            navigate('/home', { replace: true });
+
         } catch (error) {
             console.error("Error during Google sign-in: ", error);
         }
     };
+
+    useEffect(() => {
+        let user = JSON.parse(localStorage.getItem('user'));
+        if (user && user.token) {
+            navigate('/home', { replace: true });
+        }
+    }, [navigate]);
 
     return (
         <>
